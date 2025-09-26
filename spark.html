@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Supermarket Navigator</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap');
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Poppins', sans-serif;
+      background: linear-gradient(to right, #f0f4ff, #d9e9ff);
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    header {
+      background: linear-gradient(to right, #004aad, #0071bc);
+      color: white;
+      width: 100%;
+      padding: 25px 10px;
+      text-align: center;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+      animation: slideDown 1s ease;
+    }
+
+    @keyframes slideDown {
+      0% { transform: translateY(-100px); opacity: 0; }
+      100% { transform: translateY(0); opacity: 1; }
+    }
+
+    main {
+      margin-top: 30px;
+      text-align: center;
+      width: 90%;
+      max-width: 900px;
+      animation: fadeIn 1.2s ease-in;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    input, textarea {
+      padding: 12px;
+      width: 80%;
+      max-width: 350px;
+      margin: 10px auto;
+      display: block;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      font-size: 16px;
+      transition: 0.3s;
+    }
+
+    input:focus, textarea:focus {
+      border-color: #004aad;
+      outline: none;
+    }
+
+    button {
+      padding: 10px 20px;
+      background-color: #0071bc;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      margin-top: 10px;
+      cursor: pointer;
+      transition: 0.3s ease;
+    }
+
+    button:hover {
+      background-color: #005d9a;
+      transform: scale(1.05);
+    }
+
+    .map {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-top: 40px;
+      gap: 20px;
+    }
+
+    .aisle {
+      width: 120px;
+      height: 120px;
+      background-color: white;
+      border: 2px solid #ddd;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      font-size: 16px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      transition: all 0.3s ease;
+    }
+
+    .aisle.found {
+      background-color: #d1f7d1;
+      border-color: #28a745;
+      transform: scale(1.1);
+      animation: pop 0.4s ease;
+    }
+
+    @keyframes pop {
+      0% { transform: scale(0.8); opacity: 0.5; }
+      100% { transform: scale(1.1); opacity: 1; }
+    }
+
+    #result, #feedbackMsg {
+      margin-top: 20px;
+      font-size: 18px;
+      font-weight: 500;
+      color: #333;
+      animation: fadeIn 0.5s ease-in-out;
+    }
+
+    section {
+      margin-top: 60px;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>🛒 Supermarket Navigator</h1>
+    <p>Search for products and leave feedback</p>
+  </header>
+
+  <main>
+    <section>
+      <h2>Search Products</h2>
+      <input type="text" id="product" placeholder="Enter product name" />
+      <button onclick="findProduct()">Search</button>
+      <div id="result"></div>
+
+      <div class="map">
+        <div class="aisle" id="Aisle 1">Aisle 1</div>
+        <div class="aisle" id="Aisle 2">Aisle 2</div>
+        <div class="aisle" id="Aisle 3">Aisle 3</div>
+        <div class="aisle" id="Aisle 4">Aisle 4</div>
+        <div class="aisle" id="Aisle 5">Aisle 5</div>
+        <div class="aisle" id="Aisle 6">Aisle 6</div>
+        <div class="aisle" id="Aisle 7">Aisle 7</div>
+        <div class="aisle" id="Aisle 8">Aisle 8</div>
+        <div class="aisle" id="Aisle 9">Aisle 9</div>
+      </div>
+    </section>
+
+    <section>
+      <h2>📝 Feedback</h2>
+      <input type="text" id="fname" placeholder="Your Name" />
+      <input type="number" id="rating" placeholder="Rating (1-5)" min="1" max="5" />
+      <textarea id="comment" rows="4" placeholder="Your feedback..."></textarea>
+      <button onclick="submitFeedback()">Submit Feedback</button>
+      <p id="feedbackMsg"></p>
+    </section>
+  </main>
+
+  <!-- Firebase SDK -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyBRMXgtA0eu6_erSXJhQvPXhIuRlqe-rOE",
+      authDomain: "supermarket-navigator-7b84c.firebaseapp.com",
+      projectId: "supermarket-navigator-7b84c",
+      storageBucket: "supermarket-navigator-7b84c.firebasestorage.app",
+      messagingSenderId: "127262316412",
+      appId: "1:127262316412:web:6b2ef06ef80180303ff6f9",
+      measurementId: "G-GLJXNPS0B9"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    const storeData = {
+      "Aisle 1": ["toothpaste", "shampoo", "soap", "deodorant"],
+      "Aisle 2": ["rice", "pulses", "wheat flour", "sugar"],
+      "Aisle 3": ["chocolates", "chips", "biscuits", "soft drinks"],
+      "Aisle 4": ["milk", "curd", "butter", "cheese"],
+      "Aisle 5": ["detergent", "dish soap", "floor cleaner", "toilet cleaner"],
+      "Aisle 6": ["bread", "eggs", "jam", "peanut butter"],
+      "Aisle 7": ["fruits", "vegetables", "onions", "tomatoes"],
+      "Aisle 8": ["cooking oil", "ghee", "spices", "salt"],
+      "Aisle 9": ["notebooks", "pens", "stationery", "batteries"]
+    };
+
+    window.findProduct = function () {
+      const input = document.getElementById("product").value.trim().toLowerCase();
+      let found = false;
+
+      document.querySelectorAll('.aisle').forEach(div => div.classList.remove('found'));
+
+      for (let aisle in storeData) {
+        const items = storeData[aisle].map(item => item.toLowerCase());
+        if (items.includes(input)) {
+          document.getElementById(aisle).classList.add('found');
+          document.getElementById("result").textContent = `✅ "${input}" found in ${aisle}`;
+          found = true;
+          break;
+        }
+      }
+
+      if (!found) {
+        document.getElementById("result").textContent = `❌ "${input}" not found in store layout`;
+      }
+    };
+
+    window.submitFeedback = async function () {
+      const name = document.getElementById("fname").value;
+      const rating = document.getElementById("rating").value;
+      const comment = document.getElementById("comment").value;
+
+      if (name && rating && comment) {
+        try {
+          await addDoc(collection(db, "feedbacks"), {
+            name,
+            rating,
+            comment,
+            timestamp: new Date()
+          });
+          document.getElementById("feedbackMsg").textContent = `✅ Thanks, ${name}! Your feedback was saved.`;
+          document.getElementById("fname").value = "";
+          document.getElementById("rating").value = "";
+          document.getElementById("comment").value = "";
+        } catch (e) {
+          console.error("Error adding feedback: ", e);
+          document.getElementById("feedbackMsg").textContent = `❌ Error saving feedback.`;
+        }
+      } else {
+        document.getElementById("feedbackMsg").textContent = "⚠️ Please fill all fields.";
+      }
+    };
+  </script>
+</body>
+</html>
